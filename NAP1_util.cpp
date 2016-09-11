@@ -1,9 +1,9 @@
-#include "util.h"
+#include "NAP1_util.h"
 #include "application.h"
-#include "sd-card-library.h"
 
 
-bool OSBH::init_wifi(uint16_t timeout_ms)
+
+bool NAP1::init_wifi(uint16_t timeout_ms)
 {
     WiFi.on();
     //WiFi.connect();
@@ -12,13 +12,12 @@ bool OSBH::init_wifi(uint16_t timeout_ms)
     while (!Spark.connected() && millis() < timeout) {
         Spark.process();
         delay(100);
-    } 
+    }
     return Spark.connected();
     //return WiFi.ready();
 }
 
-
-bool OSBH::sync_time(uint16_t timeout_ms)
+bool NAP1::sync_time(uint16_t timeout_ms)
 {
     if (Spark.connected()) {
         Spark.syncTime();
@@ -35,17 +34,7 @@ bool OSBH::sync_time(uint16_t timeout_ms)
     return false;
 }
 
-bool OSBH::write_to_sd(SDClass& sd, const char* line, const char* filename) 
-{
-    if (File myFile = sd.open(filename, FILE_WRITE)) {
-        bool success = (myFile.print(line) == strlen(line));
-        myFile.close();
-        return success;
-    }
-    return false;
-}
-
-bool OSBH::get_timestamp(char* buffer, const int size, float gmt_offset)
+bool NAP1::get_timestamp(char* buffer, const int size, float gmt_offset)
 {
     // return empty string if the GMT offset doesn't make sense
     if (gmt_offset < GMT_MIN_OFFSET || gmt_offset > GMT_MAX_OFFSET) {
@@ -70,7 +59,7 @@ bool OSBH::get_timestamp(char* buffer, const int size, float gmt_offset)
     return true;
 }
 
-void OSBH::append_suffix(char* buffer, const int size, const char* suffix)
+void NAP1::append_suffix(char* buffer, const int size, const char* suffix)
 {
     int suffix_len = strlen(suffix) + 1; // include space for null terminator
 

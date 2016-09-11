@@ -2,8 +2,10 @@
  * Open Source Beehives library
  */
 
-#ifndef __UTIL_H__
-#define __UTIL_H__
+//#ifndef __UTIL_H__
+//#define __UTIL_H__
+#ifndef __NAP1_UTIL_H__
+#define __NAP1_UTIL_H__
 
 #include "stdint.h"
 
@@ -19,7 +21,8 @@
 class SDClass;
 
 
-namespace OSBH {
+//namespace OSBH {
+namespace NAP1 {
 
 /* Utility functions */
 
@@ -29,9 +32,6 @@ bool init_wifi(uint16_t timeout_ms = 10000);
 // in cases where time has already been synced previously and is
 // being re-synced
 bool sync_time(uint16_t timeout_ms = 1000);
-
-// appends line to file on SD card. creates file if it doesn't exist.
-bool write_to_sd(SDClass& sd, const char* line, const char* filename);
 
 // clears buffer and returns false if the GMT offset is out of range
 bool get_timestamp(char* buffer, const int size, float gmt_offset = 0.);

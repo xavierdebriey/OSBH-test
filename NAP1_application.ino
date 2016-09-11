@@ -1,21 +1,16 @@
-#include "config.h"
-#include "util.h"
-#include "Sensor_Array.h"
-#include "sd-card-library.h"
-#include "audio.h"
+#include "NAP1_config.h"
+#include "NAP1_util.h"
+#include "NAP1_Sensor_Array.h"
+#include "NAP1_audio.h"
 #include "MQTT.h"
 
-using namespace OSBH;
+using namespace NAP1;
 
 // disable wifi on boot
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // global sensor array
-Sensor_Array sensors(ONE_WIRE_PIN, DHT_PIN1, DHT_PIN2, DHT_TYPE);
-
-// whether there's an SD card present in the socket
-enum SD_State { SD_REMOVED, SD_READY, SD_UNPREPARED };
-SD_State sd_state = SD_REMOVED;
+NAP1_Sensor_Array sensors(DHT_PIN, DHT_TYPE);
 
 // buffer for reading/writing strings. Using the spark/wiring String class
 // would be more convenient, but risks memory fragmentation.
@@ -29,7 +24,7 @@ char io_buffer[IO_BUFFER_LEN];
 /**************************************************************************/
 
 
-void callback(char* topic, byte* payload, unsigned int length);
+//void callback(char* topic, byte* payload, unsigned int length);
 
 /**
  * if want to use IP address,
@@ -79,12 +74,6 @@ void write(bool last_entry = false)
     // prep for writing as CSV
     append_suffix(io_buffer, IO_BUFFER_LEN, (last_entry ? LINE_END : DELIMITER));
 
-    // save data to SD card, if it's ready
-    if (sd_state == SD_READY && !write_to_sd(SD, io_buffer, LOGFILE_NAME)) {
-        DEBUG_PRINTLN("could not write to SD card");
-        sd_state = SD_UNPREPARED; // attempt to re-initialize later
-    }
-
     // print to debug output
     DEBUG_PRINT(io_buffer);
 }
@@ -93,41 +82,24 @@ void write(bool last_entry = false)
 void audio_write()
 {
 	get_timestamp(io_buffer, IO_BUFFER_LEN, GMT_OFFSET);
+
 	// null-termination
 	io_buffer[IO_BUFFER_LEN-1] = '\0';
+
 	// append end-delimiter
 	append_suffix(io_buffer, IO_BUFFER_LEN, LINE_END );
-	// write to SD
-	if (sd_state == SD_READY && !write_to_sd(SD, io_buffer, LOGFILE_NAME_AUDIO)) {
-        DEBUG_PRINTLN("failed to write to SD card");
-        sd_state = SD_UNPREPARED; // attempt to re-initialize later
-    }
+
+  //Apply FFT on audio signal
 	updateFFT();
 	for(int i=0; i < FFT_SIZE/2+2; i++) {
-        csv_audio_output(io_buffer, IO_BUFFER_LEN, i);
+      csv_audio_output(io_buffer, IO_BUFFER_LEN, i);
 
 			// double-check that buffer is null-terminated
 			io_buffer[IO_BUFFER_LEN-1] = '\0';
-			// save data to SD card, if it's attached
-			if (sd_state == SD_READY && !write_to_sd(SD, io_buffer, LOGFILE_NAME_AUDIO)) {
-				DEBUG_PRINTLN("failed to write to SD card");
-				sd_state = SD_UNPREPARED; // attempt to re-initialize later
-			}
-			// print to debug output
-			  DEBUG_PRINT(io_buffer);
-	}
-}
 
-// interrupt handler for SD card
-void update_sd_state()
-{
-    if (!digitalRead(SD_CD_PIN_IN)) {
-        // card is absent
-        sd_state = SD_REMOVED;
-    } else if (sd_state == SD_REMOVED) {
-        // card is present, but was previously removed, so requires initialization
-        sd_state = SD_UNPREPARED;
-    }
+			// print to debug output
+			DEBUG_PRINT(io_buffer);
+	}
 }
 
 /**************************************************************************/
@@ -140,36 +112,29 @@ void setup()
     Serial.begin(9600);
     DEBUG_PRINTLN("starting setup...");
 
-   // attempt to connect to wifi
+    // attempt to connect to wifi
     if (!init_wifi()) {
         DEBUG_PRINTLN("could not establish wifi connection");
     }
     else
     {
-		 // connect to the mqtt server
-			client.connect(MQTTID, MQTTUSER, MQTTPSW);
-			if(!client.isConnected()) {
-				 DEBUG_PRINTLN("could not connect to mqtt server");
-			}
-			else
-			{
-				DEBUG_PRINTLN("connected to:");
-				DEBUG_PRINTLN(MQTTSERVER);
-			}
-	}
+		    // connect to the mqtt server
+			  client.connect(MQTTID, MQTTUSER, MQTTPSW);
+			  if(!client.isConnected()) {
+				    DEBUG_PRINTLN("could not connect to mqtt server");
+			  }
+			  else
+			  {
+				    DEBUG_PRINTLN("connected to:");
+				    DEBUG_PRINTLN(MQTTSERVER);
+			  }
+	  }
 
     // initialize sensors
     sensors.begin();
 
     // reserve memory for FFT (audio analysis)
     FFTinit();
-
-    // attach interrupt on SD card-detect pin to catch inserts/removes
-    pinMode(SD_CD_PIN_OUT, OUTPUT); // output signal
-    digitalWrite(SD_CD_PIN_OUT, HIGH); // send high
-    pinMode(SD_CD_PIN_IN, INPUT_PULLDOWN); // usual input = 0 == card not attached
-    attachInterrupt(SD_CD_PIN_IN, update_sd_state, CHANGE); // interrupt function which waits for pin input Change
-    update_sd_state(); // set initial state
 
     // write header for timestamp column
     strncpy(io_buffer, "Timestamp", IO_BUFFER_LEN);
@@ -209,15 +174,11 @@ void loop()
     }
 
 
-    // initialize SD card if necessary
-    if (sd_state == SD_UNPREPARED) {
-        SD.begin();
-        sd_state = SD_READY;
-    }
 
     // read and report sensor data
     if (now > next_read)
     {
+
 
         DEBUG_PRINTLN("reading...");
 
@@ -225,29 +186,25 @@ void loop()
         get_timestamp(io_buffer, IO_BUFFER_LEN, GMT_OFFSET);
         write();
 
-
         // get sensor readings
         for (uint8_t i = 0; i < sensors.count(); ++i) {
             sensors.getEventString(i, io_buffer, IO_BUFFER_LEN);
-
+            DEBUG_PRINTLN("");
             //mqtt write
             char tempstr[30] = "";
             strcpy(tempstr, MQTTBASETOPIC);
             strcat(tempstr, mqtttopics[i]);
-            if(client.isConnected()){
-            //client.publish("ronjac/feeds/Bienensensor","20000.00;");
-            client.publish("xdb/feeds/Bienensensor","20000.00;");
-            DEBUG_PRINTLN(tempstr);
-            DEBUG_PRINTLN("jemand da?");
-			}
-			else //try again if not connected
-			{
-				client.connect(MQTTID, MQTTUSER, MQTTPSW);
-				if(client.isConnected()){
-				client.publish("nn/feeds/Temp1",io_buffer);
-
-				}
-			}
+            if(client.isConnected()) {
+                client.publish(tempstr,io_buffer);
+                DEBUG_PRINTLN(tempstr);
+			      }
+			      else //try again if not connected
+			      {
+				        client.connect(MQTTID, MQTTUSER, MQTTPSW);
+				        if(client.isConnected()) {
+                    client.publish(tempstr,io_buffer);
+				        }
+			      }
 
             //end mqtt write
 
@@ -257,18 +214,24 @@ void loop()
 
 
         //perform audio analysis
-       //updateFFT();
-       //audio_write();
-		updateFFT();
-		char tempstr[30] = "";
-		strcpy(tempstr, MQTTBASETOPIC);
-		strcat(tempstr, MQTTAUDIOTOPIC);
-		DEBUG_PRINTLN(tempstr);
-		for(int i=0; i < FFT_SIZE/2+2; i++) {
-			mqtt_audio_output(io_buffer, IO_BUFFER_LEN, i);
-			client.publish(tempstr,io_buffer);
-			delay(500);
-		}
+        //updateFFT();
+        //audio_write();
+		    updateFFT();
+		    char tempstr_audio_freq[30] = "";
+        char tempstr_audio_magn[30] = "";
+        strcpy(tempstr_audio_freq, MQTTBASETOPIC);
+		    strcat(tempstr_audio_freq, MQTTAUDIOFREQTOPIC);
+		    strcpy(tempstr_audio_magn, MQTTBASETOPIC);
+		    strcat(tempstr_audio_magn, MQTTAUDIOMAGNTOPIC);
+		    DEBUG_PRINTLN(tempstr_audio_freq); // A VOIRRRRRRR
+        DEBUG_PRINTLN(tempstr_audio_magn); // A VOIIRRRRRRR
+		    for(int i=0; i < FFT_SIZE/2+2; i++) {
+			      mqtt_audio_frequencies_output(io_buffer, IO_BUFFER_LEN, i);
+			      client.publish(tempstr_audio_freq, io_buffer);
+            mqtt_audio_magnitudes_output(io_buffer, IO_BUFFER_LEN, i);
+			      client.publish(tempstr_audio_magn, io_buffer);
+			      delay(500);
+		    }
 
 
 
@@ -277,7 +240,10 @@ void loop()
 
     }
 
-    if (Spark.connected()) Spark.process();
+    if (Spark.connected()) {
+        Spark.process();
+    }
+
 		Serial.println(Time.timeStr());
-		delay(1000);
+		delay(10000);
 }

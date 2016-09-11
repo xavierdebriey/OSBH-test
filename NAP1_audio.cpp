@@ -7,7 +7,7 @@ January 2015
  *************************************/
 
 #include "application.h"
-#include "audio.h"
+#include "NAP1_audio.h"
 
 #include "kiss_fftr.h"
 #include <stdarg.h>
@@ -26,22 +26,22 @@ void FFTinit() {
     fft_in = (kiss_fft_scalar*)malloc(FFT_SIZE * sizeof(kiss_fft_scalar));
     fft_out = (kiss_fft_cpx*)malloc(FFT_SIZE / 2 * sizeof(kiss_fft_cpx) + 1);
 /**************************************************************************/
-    
+
 }
 
-float windowfunction(unsigned int n) { 
+float windowfunction(unsigned int n) {
     // define windowfunction to prevent leakage of the signal
     // Hamming-Window
-    return 0.53836 - 0.46164 * cos(2.0 * M_PI * n / double(FFT_SIZE - 1));  
-    } 
+    return 0.53836 - 0.46164 * cos(2.0 * M_PI * n / double(FFT_SIZE - 1));
+    }
 
 void updateFFT() {
     //kiss_fft_scalar pt;
-    
+
     int timespend = 0;
     int timestamp = millis();
     for(int i=0; i < FFT_SIZE; i++) {
-        
+
         fft_in[i] = (windowfunction(i)*(((float)analogRead(MICROPHONE))-2048)/16.f); // decrease the signal input number so that u can process it with fft
         /*float anIN = ((float)analogRead(MICROPHONE))/32.f;
         fft_in[i] = windowfunction(i)*anIN;
@@ -52,8 +52,8 @@ void updateFFT() {
         Serial.println(fft_in[i]);
         //testing with artificial sinus signal */
         //fft_in[i] = sin(2*3.14*5/FFT_SIZE*i)+sin(2*3.14*0.45*i);
-        
-        delayMicroseconds(SAMPLEDELAY);  // Define the sample rate: 280us are about 3500Hz samplerate, 
+
+        delayMicroseconds(SAMPLEDELAY);  // Define the sample rate: 280us are about 3500Hz samplerate,
                                     // frequency analysis works up to the half of this frequency
     }
     timespend = millis() - timestamp;
@@ -64,13 +64,13 @@ void updateFFT() {
     Serial.print(" Hz needed");
     Serial.print(timespend);
     Serial.println(" ms");
-    
+
     kiss_fftr(fft_cfg, fft_in, fft_out);
 }
 
 void printfrequencies() {
     updateFFT();
-    
+
     for(int i=0; i < FFT_SIZE/2+2; i++) {
         float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r; // amplitude of the signal is the magnitude of the complex number
         if( magn > 1000)  {   // realtively low filter for surrounding noise - important constant for analysis
@@ -81,28 +81,26 @@ void printfrequencies() {
         Serial.print(",magn: ");
         Serial.println(magn);
         }
-        
+
     }
 }
 
-
 void csv_audio_output(char* buffer, const int length, int i) {
-	// when calling the function you need to watch out for the range of i!
+	  // when calling the function you need to watch out for the range of i!
     float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r;
     // amplitude of the signal is the magnitude of the complex number
 		float fbox = i*frequency/FFT_SIZE;
-		snprintf(buffer, length, " %4.2f , %4.2f \n " , magn ,fbox);
-	
+		snprintf(buffer, length, " %4.2f , %5.2f \n " , magn , fbox);
 }
-void mqtt_audio_output(char* buffer, const int length, int i) {
-	// when calling the function you need to watch out for the range of i!
+
+void mqtt_audio_magnitudes_output(char* buffer, const int length, int i) {
+    // when calling the function you need to watch out for the range of i!
     float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r;
-    // amplitude of the signal is the magnitude of the complex number
-	float fbox = i*frequency/FFT_SIZE;
-	snprintf(buffer, length, " %4.2f; \n " , magn);
+	  snprintf(buffer, length, " %4.2f; \n " , magn);
 }
 
-
-
-
-
+void mqtt_audio_frequencies_output(char* buffer, const int length, int i) {
+    // amplitude of the signal is the magnitude of the complex number
+	  float fbox = i*frequency/FFT_SIZE;
+	  snprintf(buffer, length, " %5.2f; \n " , fbox);
+}
