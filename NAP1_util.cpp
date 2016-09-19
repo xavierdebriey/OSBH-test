@@ -1,6 +1,6 @@
 #include "NAP1_util.h"
 #include "application.h"
-
+#include "sd-card-library.h"
 
 
 bool NAP1::init_wifi(uint16_t timeout_ms)
@@ -30,6 +30,16 @@ bool NAP1::sync_time(uint16_t timeout_ms)
             delay(100);
         }
         return millis() < timeout;
+    }
+    return false;
+}
+
+bool NAP1::write_to_sd(SDClass& sd, const char* line, const char* filename)
+{
+    if (File myFile = sd.open(filename, FILE_WRITE)) {
+        bool success = (myFile.print(line) == strlen(line));
+        myFile.close();
+        return success;
     }
     return false;
 }

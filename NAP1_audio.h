@@ -29,6 +29,8 @@ void printfrequencies();
 
 void csv_audio_output(char *buffer, int length , int i);
 
+void mqtt_audio_output(char *buffer, int length , int i);
+
 void mqtt_audio_frequencies_output(char *buffer, int length , int i);
 
 void mqtt_audio_magnitudes_output(char *buffer, int length , int i);

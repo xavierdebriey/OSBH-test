@@ -18,13 +18,23 @@
 #endif
 
 /* Pin and sensor definitions */
-#define DHT_PIN        D0        // Pin for internal DHT sensor.
-#define DHT_TYPE       DHT22     // DHT 22 (AM2302)
+#define FLEXIFORCE_PIN      A0
+#define ONE_WIRE_WATER_PROOF_PIN  D0
+#define ONE_WIRE_OTHER_PIN  D2
+#define DHT11_PIN       D1         // Pin for internal DHT sensor.
+#define DHT22_PIN       D3         // Pin for external DHT sensor.
+#define DHT11_TYPE      DHT11     // DHT 22 (AM2302)
+#define DHT22_TYPE      DHT22     // DHT 22 (AM2302)
+#define SD_CD_PIN_IN   A6
+#define SD_CD_PIN_OUT  A7
 
 /* Audio analysis parameters */
-int MICROPHONE = A0; // 10;        // A0 on spark Core/Photon
+int MICROPHONE = A1; // 10;        // A0 on spark Core/Photon
 int FFT_SIZE = 128;         //FFT Bucket Size (32,64,128,256 - higher means more frequency resolution)
 int SAMPLEDELAY = 600;      //Delay for sampling in microseconds f = 1/t*10^6
+
+/* Flexiforce A201 100 lbs pressure sensor pin definition */
+//int flexiforce = A0;
 
 /* Configuration variables */
 #define IDEAL_READ_INTERVAL 5000 // may be adjusted upward to match sensors' min_delays
@@ -47,7 +57,15 @@ int SAMPLEDELAY = 600;      //Delay for sampling in microseconds f = 1/t*10^6
 char* MQTTBASETOPIC = "xdb/feeds";
 char* MQTTAUDIOMAGNTOPIC = "/audio_magnitudes";
 char* MQTTAUDIOFREQTOPIC = "/audio_frequencies";
+char* MQTTWEIGHTTOPIC = "/weight";
 char* mqtttopics[] = {"/temperature", "/humidity"};
+
+/* Particle Events */
+char* PARTICLECATEGEVENT = "event_category";
+char* PARTICLEAUDIOMAGNEVENT = "audio_magnitude";
+char* PARTICLEAUDIOFREQEVENT = "audio_frequency";
+char* PARTICLEWEIGHTEVENT = "weight";
+char* particleevents[] = {"DHT11_temperature", "DHT11_humidity", "DHT22_temperature", "DHT22_humidity", "WP_temperature"};
 
 
 #endif

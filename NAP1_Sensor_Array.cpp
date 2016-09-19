@@ -3,10 +3,12 @@
 //using namespace NAP1;
 using namespace NAP1;
 
-NAP1_Sensor_Array::NAP1_Sensor_Array(uint8_t dht_pin, uint8_t dht_type)
+NAP1_Sensor_Array::NAP1_Sensor_Array(uint8_t one_wire_pin, uint8_t dht_pin1, uint8_t dht_pin2, uint8_t dht_type1, uint8_t dht_type2)
     : _dht{
-        DHT_Unified(dht_pin, dht_type, 6, 1, 2)
+        DHT_Unified(dht_pin1, dht_type1, 6, 1, 2),
+        DHT_Unified(dht_pin2, dht_type2, 6, 3, 4)
     },
+    _dsx(one_wire_pin),
     _sensors{nullptr},
     _sensor_cnt(0),
     _min_delay(0)
@@ -24,6 +26,18 @@ void NAP1_Sensor_Array::begin()
         _sensors[_sensor_cnt++] = dht.temperature();
         _sensors[_sensor_cnt++] = dht.humidity();
     }
+
+    // initialize DSX sensors
+    // NOTE: currently these do not have unique names. Giving them names that reference
+    // their positions in the hive is potentially problematic because in the case of a
+    // sensor failure we won't know which one is missing so won't be able to accurately
+    // ID the others on the bus.
+    _dsx.prepare(_sensor_cnt+1);
+    uint8_t dsx_cnt = _dsx.count();
+
+    // copy DSX sensors into array
+    memcpy(_sensors+_sensor_cnt, _dsx.sensors(), dsx_cnt * sizeof(_sensors[0]));
+    _sensor_cnt += dsx_cnt;
 
     setMinDelay();
 }

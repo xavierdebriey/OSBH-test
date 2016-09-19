@@ -93,6 +93,14 @@ void csv_audio_output(char* buffer, const int length, int i) {
 		snprintf(buffer, length, " %4.2f , %5.2f \n " , magn , fbox);
 }
 
+void mqtt_audio_output(char* buffer, const int length, int i) {
+	// when calling the function you need to watch out for the range of i!
+    float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r;
+    // amplitude of the signal is the magnitude of the complex number
+	float fbox = i*frequency/FFT_SIZE;
+	snprintf(buffer, length, " %4.2f; \n " , magn);
+}
+
 void mqtt_audio_magnitudes_output(char* buffer, const int length, int i) {
     // when calling the function you need to watch out for the range of i!
     float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r;
