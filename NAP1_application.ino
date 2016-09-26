@@ -11,7 +11,7 @@ using namespace NAP1;
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // global sensor array
-NAP1_Sensor_Array sensors(ONE_WIRE_WATER_PROOF_PIN, DHT11_PIN, DHT22_PIN, DHT11_TYPE, DHT22_TYPE);
+NAP1_Sensor_Array sensors(ONE_WIRE_WATER_PROOF_PIN, ONE_WIRE_OTHER_PIN, DHT11_PIN, DHT22_PIN, DHT11_TYPE, DHT22_TYPE);
 
 // whether there's an SD card present in the socket
 enum SD_State { SD_REMOVED, SD_READY, SD_UNPREPARED };
@@ -21,6 +21,12 @@ SD_State sd_state = SD_REMOVED;
 // would be more convenient, but risks memory fragmentation.
 static const int IO_BUFFER_LEN = 36;
 char io_buffer[IO_BUFFER_LEN];
+char board_temperature[IO_BUFFER_LEN];
+char board_humidity[IO_BUFFER_LEN];
+char outBH_temperature[IO_BUFFER_LEN];
+char topBH_temperature[IO_BUFFER_LEN];
+double audio_output[128];
+double audio_sampling = 0.0;
 
 /**************************************************************************/
 /*
@@ -137,7 +143,16 @@ void update_sd_state()
 /**************************************************************************/
 void setup()
 {
+    // Initialize Cloud variables
+    Particle.variable("board_temp", board_temperature, STRING);
+    Particle.variable("board_hum", board_humidity, STRING);
+    Particle.variable("outBH_temp", outBH_temperature, STRING);
+    Particle.variable("topBH_temp", topBH_temperature, STRING);
+    Particle.variable("audio_samp", &audio_sampling, DOUBLE);
+
+    // Setup serial communication
     Serial.begin(9600);
+
     DEBUG_PRINTLN("starting setup...");
 
     // attempt to connect to wifi
@@ -199,9 +214,9 @@ void loop()
     static uint32_t next_read;
     const uint32_t now = millis();
 
+
     // make sure our read interval respects our minimum sensor delays
     static const uint32_t read_interval = max(IDEAL_READ_INTERVAL, sensors.minDelay());
-
 
 
     // time synchronization
@@ -233,9 +248,7 @@ void loop()
         //client.publish(MQTTBASETOPIC, "START_TEMP_HUM_SEQUENCE");
         Particle.publish(PARTICLECATEGEVENT, "START_TEMP_HUM_SEQUENCE");
         delay(500);
-        Serial.print("Sensors number: ");
-        delay(5000);
-        Serial.println(sensors.count());
+
         // get sensor readings
         for (uint8_t i = 0; i < sensors.count(); ++i) {
             sensors.getEventString(i, io_buffer, IO_BUFFER_LEN);
@@ -245,9 +258,35 @@ void loop()
             //strcpy(tempstr, MQTTBASETOPIC);
             //strcat(tempstr, mqtttopics[i]);
             strcpy(tempstr, particleevents[i]);
+
+            if (strcmp(tempstr, "board_temperature") == 0) {
+                memcpy (board_temperature, io_buffer, IO_BUFFER_LEN);
+                /*for(int j=0; j<36; j++){
+                    board_temperature[j] = io_buffer[j];
+                }*/
+            } else if (strcmp(tempstr, "board_humidity") == 0) {
+                memcpy (board_humidity, io_buffer, IO_BUFFER_LEN);
+                /*for(int j=0; j<36; j++){
+                    board_humidity[j] = io_buffer[j];
+                }*/
+            } else if (strcmp(tempstr, "outBH_temperature") == 0) {
+                memcpy (outBH_temperature, io_buffer, IO_BUFFER_LEN);
+                /*for(int j=0; j<36; j++){
+                    outBH_temperature[j] = io_buffer[j];
+                }*/
+            } else if (strcmp(tempstr, "topBH_temperature") == 0) {
+                memcpy (topBH_temperature, io_buffer, IO_BUFFER_LEN);
+                /*for(int j=0; j<36; j++){
+                    topBH_temperature[j] = io_buffer[j];
+                }*/
+            } else {
+                DEBUG_PRINTLN("Failed reading sensor");
+            }
+
             if(Particle.connected()) {
                 //client.publish(tempstr, io_buffer);
                 Particle.publish(tempstr, io_buffer);
+
                 DEBUG_PRINTLN(tempstr);
 			      }
 			      else //try again if not connected
@@ -264,7 +303,7 @@ void loop()
 
             write(i == sensors.count() - 1);
 
-            delay(500);
+            delay(5000);
 
         }
         //client.publish(MQTTBASETOPIC, "END_TEMP_HUM_SEQUENCE");
@@ -272,7 +311,7 @@ void loop()
 
         delay(500);
 
-        /*//perform audio analysis
+        /*// Perform audio analysis (version 1)
         //updateFFT();
         //audio_write();
 		    updateFFT();
@@ -300,9 +339,32 @@ void loop()
 		    }
         //client.publish(MQTTBASETOPIC, "END_AUDIO_SEQUENCE");
         Particle.publish(PARTICLECATEGEVENT, "END_AUDIO_SEQUENCE");
+        delay(500);*/
+
+        // Perform audio analysis (version 2)
+        updateFFT();
+        char tempstr[30] = "";
+        strcpy(tempstr, PARTICLEAUDIOSIGNEVENT);
+        DEBUG_PRINTLN(tempstr);
+        Particle.publish(PARTICLECATEGEVENT, "START_AUDIO_SEQUENCE");
+
+        // Sampling of the audio signal at SAMPLEDELAY as sampling period
+        for(int i=0; i < SAMP_NUM; i++) {
+            audio_output[i] = (double) analogRead(MICROPHONE);
+            delayMicroseconds(SAMPLEDELAY);
+        }
+
+        // Send audio signal datas to Cloud
+        for(int i=0; i < SAMP_NUM; i++) {
+            audio_sampling = audio_output[i];
+            Particle.publish(tempstr, String(audio_sampling));
+            delay(1000);
+        }
+
+        Particle.publish(PARTICLECATEGEVENT, "END_AUDIO_SEQUENCE");
         delay(500);
 
-        // Read weight data
+        /*// Read weight data
         char tempstr[30] = "";
         //strcpy(tempstr, MQTTBASETOPIC);
         //strcat(tempstr, MQTTWEIGHTTOPIC);
@@ -338,8 +400,8 @@ void loop()
 
     }
 
-    if (Spark.connected()) {
-        Spark.process();
+    if (Particle.connected()) {
+        Particle.process();
     }
 
 		Serial.println(Time.timeStr());

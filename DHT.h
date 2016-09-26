@@ -9,7 +9,7 @@
  #include "WProgram.h"
 #endif
 
-/* DHT library 
+/* DHT library
 
 MIT license
 written by Adafruit Industries

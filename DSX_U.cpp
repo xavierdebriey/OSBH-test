@@ -3,7 +3,7 @@
  *
  *  Adaption of Adafruit Unified driver to Spark and DS OneWire sensors
  *
- *  DSX_Sensor code based off PietteTech_DSX_U class, which is 
+ *  DSX_Sensor code based off PietteTech_DSX_U class, which is
  *  copyright (c) 2014 Scott Piette (scott.piette@gmail.com)
  *
  *  Developed for the Open Source Beehives Project
@@ -46,11 +46,12 @@ enum
  @brief  Function definitions for DSX_Unified wrapper class
  */
 /**************************************************************************/
-DSX_Unified::DSX_Unified(uint8_t oneWirePin) 
+DSX_Unified::DSX_Unified(uint8_t oneWirePin)
     : _one(oneWirePin), _sensors{nullptr}, _sensor_cnt(0)
 {}
 
 void DSX_Unified::prepare(uint8_t starting_sensor_id)
+//void DSX_Unified::prepare(uint8_t starting_sensor_id)
 {
     if (_sensor_cnt) return;
 
@@ -79,7 +80,7 @@ DSX_Unified::~DSX_Unified()
  @brief  Instantiates a new DSX_Sensor class
  */
 /**************************************************************************/
-DSX_Sensor::DSX_Sensor(uint8_t addr[8], OneWire *one, int32_t sensorId, char *sensorName) 
+DSX_Sensor::DSX_Sensor(uint8_t addr[8], OneWire *one, int32_t sensorId, char *sensorName)
     : _one(one), _sensorID(sensorId)
 {
     memcpy(&_addr[0], addr, 8);
@@ -105,24 +106,24 @@ float DSX_Sensor::getTemperature()
     // If the sensor type is unknown return
     if (_addr[0] == -1)
         return (float) 0;
-    
+
     uint8_t resp[9];      		// 9 byte response buffer
     byte i;
 //    byte present = 0;
-    
+
     _one->reset();              	// Issue reset to one-wire buss
     _one->select(&_addr[0]);        	// Send rom address
-    
+
     _one->write(DSX_CMD_STARTCONVERSION);// start conversion, with parasite power on at the end
     delay(10);            // maybe 750ms is enough, maybe not, I'm shooting for 1 reading per second
-    
+
     _one->reset(); 			// Issue reset to bus
     _one->select(&_addr[0]);        	// Send rom address
     _one->write(DSX_CMD_READSCRATCHPAD, 0);// Read Scratchpad 0
-    
+
     for ( i = 0; i < 9; i++)            // we need 9 bytes
         resp[i] = _one->read();
-    
+
     // Convert the data to actual temperature
     // because the result is a 16 bit signed integer, it should
     // be stored to an "int16_t" type, which is always 16 bits
@@ -213,7 +214,7 @@ void DSX_Sensor::getSensor(sensor_t *sensor)
 {
     /* Clear the sensor_t object */
     memset(sensor, 0, sizeof(sensor_t));
-    
+
     // Set sensor name.
     strncpy(sensor->name, _name, sizeof(sensor->name) - 1);
     // Set version and ID

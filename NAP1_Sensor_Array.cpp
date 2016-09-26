@@ -3,17 +3,17 @@
 //using namespace NAP1;
 using namespace NAP1;
 
-NAP1_Sensor_Array::NAP1_Sensor_Array(uint8_t one_wire_pin, uint8_t dht_pin1, uint8_t dht_pin2, uint8_t dht_type1, uint8_t dht_type2)
+NAP1_Sensor_Array::NAP1_Sensor_Array(uint8_t one_wire1_pin, uint8_t one_wire2_pin, uint8_t dht1_pin, uint8_t dht2_pin, uint8_t dht1_type, uint8_t dht2_type)
     : _dht{
-        DHT_Unified(dht_pin1, dht_type1, 6, 1, 2),
-        DHT_Unified(dht_pin2, dht_type2, 6, 3, 4)
+        DHT_Unified(dht2_pin, dht2_type, 6, 1, 2), // Just 1 module DHT22 is used
+        //DHT_Unified(dht1_pin, dht1_type, 6, 3, 4)
     },
-    _dsx(one_wire_pin),
+    _dsx1(one_wire1_pin),
+    _dsx2(one_wire2_pin),
     _sensors{nullptr},
     _sensor_cnt(0),
     _min_delay(0)
     {}
-
 
 void NAP1_Sensor_Array::begin()
 {
@@ -32,11 +32,23 @@ void NAP1_Sensor_Array::begin()
     // their positions in the hive is potentially problematic because in the case of a
     // sensor failure we won't know which one is missing so won't be able to accurately
     // ID the others on the bus.
-    _dsx.prepare(_sensor_cnt+1);
-    uint8_t dsx_cnt = _dsx.count();
+    _dsx1.prepare(_sensor_cnt+1);
+    uint8_t dsx_cnt = _dsx1.count();
 
     // copy DSX sensors into array
-    memcpy(_sensors+_sensor_cnt, _dsx.sensors(), dsx_cnt * sizeof(_sensors[0]));
+    memcpy(_sensors+_sensor_cnt, _dsx1.sensors(), dsx_cnt * sizeof(_sensors[0]));
+    _sensor_cnt += dsx_cnt;
+
+    // initialize DSX sensors
+    // NOTE: currently these do not have unique names. Giving them names that reference
+    // their positions in the hive is potentially problematic because in the case of a
+    // sensor failure we won't know which one is missing so won't be able to accurately
+    // ID the others on the bus.
+    _dsx2.prepare(_sensor_cnt+1);
+     dsx_cnt = _dsx2.count();
+
+    // copy DSX sensors into array
+    memcpy(_sensors+_sensor_cnt, _dsx2.sensors(), dsx_cnt * sizeof(_sensors[0]));
     _sensor_cnt += dsx_cnt;
 
     setMinDelay();
@@ -74,8 +86,8 @@ void NAP1_Sensor_Array::getEventString(uint8_t index, char* buffer, size_t len)
     sensors_event_t event;
     if (!getEvent(index, &event))
         return;
-
-    snprintf(buffer, len, "%f", event.data[0]);
+    //snprintf(buffer, len, "%f", event.data[0]);
+    snprintf(buffer, len, "%2.3f", event.data[0]);
 }
 
 void NAP1_Sensor_Array::setMinDelay()

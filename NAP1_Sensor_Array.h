@@ -17,7 +17,7 @@ class NAP1_Sensor_Array
 {
 public:
     // Construct individual sensor objects, but don't yet initialize the array
-    NAP1_Sensor_Array(uint8_t one_wire_pin, uint8_t dht_pin1, uint8_t dht_pin2, uint8_t dht_type1, uint8_t dht_type2);
+    NAP1_Sensor_Array(uint8_t one_wire1_pin, uint8_t one_wire2_pin, uint8_t dht1_pin, uint8_t dht2_pin, uint8_t dht1_type, uint8_t dht2_type);
 
     // Initialize the array. Call this before calling any of the methods below.
     void begin();
@@ -42,11 +42,12 @@ private:
     NAP1_Sensor_Array& operator=(const NAP1_Sensor_Array&) = delete;
 
     // dht objects, each representing one temp and one humidity sensor
-    static const uint8_t DHT_CNT = 2;
+    static const uint8_t DHT_CNT = 1;
     DHT_Unified _dht[DHT_CNT];
 
     // this object can represent multiple DSX* sensors on the same onewire bus
-    DSX_Unified _dsx;
+    DSX_Unified _dsx1;
+    DSX_Unified _dsx2; // car conncté sur un autre pin
 
     // array of Adafruit_sensor* pointers
     Adafruit_Sensor* _sensors[DSX_Unified::MAX_SENSORS + DHT_CNT*2];

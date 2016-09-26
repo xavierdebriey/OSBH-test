@@ -31,6 +31,7 @@
 /* Audio analysis parameters */
 int MICROPHONE = A1; // 10;        // A0 on spark Core/Photon
 int FFT_SIZE = 128;         //FFT Bucket Size (32,64,128,256 - higher means more frequency resolution)
+int SAMP_NUM = FFT_SIZE;
 int SAMPLEDELAY = 600;      //Delay for sampling in microseconds f = 1/t*10^6
 
 /* Flexiforce A201 100 lbs pressure sensor pin definition */
@@ -62,10 +63,12 @@ char* mqtttopics[] = {"/temperature", "/humidity"};
 
 /* Particle Events */
 char* PARTICLECATEGEVENT = "event_category";
+char* PARTICLEAUDIOSIGNEVENT = "audio_signal";
 char* PARTICLEAUDIOMAGNEVENT = "audio_magnitude";
 char* PARTICLEAUDIOFREQEVENT = "audio_frequency";
 char* PARTICLEWEIGHTEVENT = "weight";
-char* particleevents[] = {"DHT11_temperature", "DHT11_humidity", "DHT22_temperature", "DHT22_humidity", "WP_temperature"};
+char* particleevents[] = {"board_temperature", "board_humidity", "outBH_temperature", "topBH_temperature"};
+//char* particleevents[] = {"DHT11_temperature", "DHT11_humidity", "DHT22_temperature", "DHT22_humidity", "WP_temperature", "NWP_temperature"};
 
 
 #endif

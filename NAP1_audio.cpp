@@ -33,7 +33,8 @@ float windowfunction(unsigned int n) {
     // define windowfunction to prevent leakage of the signal
     // Hamming-Window
     return 0.53836 - 0.46164 * cos(2.0 * M_PI * n / double(FFT_SIZE - 1));
-    }
+}
+
 
 void updateFFT() {
     //kiss_fft_scalar pt;
@@ -94,11 +95,11 @@ void csv_audio_output(char* buffer, const int length, int i) {
 }
 
 void mqtt_audio_output(char* buffer, const int length, int i) {
-	// when calling the function you need to watch out for the range of i!
+	  // when calling the function you need to watch out for the range of i!
     float_t magn = fft_out[i].i * fft_out[i].i + fft_out[i].r * fft_out[i].r;
     // amplitude of the signal is the magnitude of the complex number
-	float fbox = i*frequency/FFT_SIZE;
-	snprintf(buffer, length, " %4.2f; \n " , magn);
+	  float fbox = i*frequency/FFT_SIZE;
+	  snprintf(buffer, length, " %4.2f; \n " , magn);
 }
 
 void mqtt_audio_magnitudes_output(char* buffer, const int length, int i) {

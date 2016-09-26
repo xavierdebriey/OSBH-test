@@ -14,9 +14,9 @@ January 2015
 
 #include "kiss_fftr.h"
 
-extern int  MICROPHONE  ; // A1 on particle Core/Photon
-extern int  FFT_SIZE  ; //FFT Bucket Size (32,64,128,256 - higher means more frequency resolution)
-extern int  SAMPLEDELAY ; //Delay for sampling in microseconds f = 1/t*10^6
+extern int  MICROPHONE; // A1 on particle Core/Photon
+extern int  FFT_SIZE; //FFT Bucket Size (32,64,128,256 - higher means more frequency resolution)
+extern int  SAMPLEDELAY; //Delay for sampling in microseconds f = 1/t*10^6
 
 
 void FFTinit();
